@@ -8,7 +8,7 @@ app = Flask(__name__)
 def get_system_info():
     """Returns system and app information."""
     return {
-        "app_name": "DevOps CI/CD Dashboard",
+        "app_name": "DevOps CI/CD Dashboard 🚀",
         "version": os.environ.get("APP_VERSION", "1.0.0"),
         "environment": os.environ.get("FLASK_ENV", "production"),
         "python_version": platform.python_version(),

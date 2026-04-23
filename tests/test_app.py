@@ -62,7 +62,7 @@ class TestBusinessLogic:
     def test_system_info_app_name(self):
         """App name should be the expected value."""
         info = get_system_info()
-        assert info["app_name"] == "DevOps CI/CD Dashboard"
+        assert info["app_name"] == "DevOps CI/CD Dashboard 🚀"
 
     def test_pipeline_stages_count(self):
         """Pipeline must have exactly 6 stages."""

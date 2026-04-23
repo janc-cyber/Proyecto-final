@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DevOps CI/CD Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #050810;
+      --surface:   #0c1120;
+      --border:    #1a2540;
+      --accent:    #00f5a0;
+      --accent2:   #00d4ff;
+      --warn:      #ff6b35;
+      --text:      #e2e8f0;
+      --muted:     #4a5568;
+      --success:   #00f5a0;
+      --glow:      0 0 20px rgba(0,245,160,.25);
+      --glow2:     0 0 20px rgba(0,212,255,.25);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated grid background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,245,160,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,160,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Radial glow orbs ── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-1 { width: 500px; height: 500px; background: rgba(0,245,160,.08); top: -100px; left: -100px; }
+    .orb-2 { width: 400px; height: 400px; background: rgba(0,212,255,.07); bottom: -80px; right: -80px; }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      padding: 3rem 0 2.5rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      background: rgba(0,245,160,.1);
+      border: 1px solid rgba(0,245,160,.3);
+      color: var(--accent);
+      font-size: .7rem;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      padding: .35rem .8rem;
+      border-radius: 999px;
+      margin-bottom: 1.2rem;
+      animation: fadeDown .6s ease both;
+    }
+    .badge::before { content: '●'; animation: blink 1.4s infinite; }
+
+    h1 {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(1.8rem, 5vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.1;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: fadeDown .6s .1s ease both;
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: .85rem;
+      margin-top: .8rem;
+      letter-spacing: .05em;
+      animation: fadeDown .6s .2s ease both;
+    }
+
+    /* ── Grid layout ── */
+    .grid { display: grid; gap: 1.2rem; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+    @media (max-width: 768px) {
+      .grid-3 { grid-template-columns: 1fr; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.4rem 1.6rem;
+      transition: border-color .3s, transform .3s;
+    }
+    .card:hover {
+      border-color: rgba(0,245,160,.3);
+      transform: translateY(-2px);
+    }
+    .card-label {
+      font-size: .65rem;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .4rem;
+    }
+    .card-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .card-sub {
+      font-size: .75rem;
+      color: var(--muted);
+      margin-top: .25rem;
+    }
+
+    /* ── Section titles ── */
+    .section-title {
+      font-family: 'Space Mono', monospace;
+      font-size: .8rem;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin: 2.5rem 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Pipeline ── */
+    .pipeline {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.4rem .6rem;
+      position: relative;
+      gap: .5rem;
+      border-right: 1px solid var(--border);
+      animation: stageIn .5s ease both;
+    }
+    .stage:last-child { border-right: none; }
+    .stage::after {
+      content: '→';
+      position: absolute;
+      right: -10px;
+      color: var(--accent);
+      font-size: .9rem;
+      z-index: 2;
+      opacity: .7;
+    }
+    .stage:last-child::after { display: none; }
+
+    .stage-icon {
+      font-size: 1.4rem;
+      color: var(--accent);
+      filter: drop-shadow(var(--glow));
+    }
+    .stage-name {
+      font-size: .65rem;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--text);
+      font-weight: 700;
+    }
+    .stage-desc {
+      font-size: .55rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .stage-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+    }
+
+    @media (max-width: 768px) {
+      .pipeline { flex-direction: column; }
+      .stage { border-right: none; border-bottom: 1px solid var(--border); }
+      .stage::after { content: '↓'; right: auto; bottom: -12px; }
+      .stage:last-child { border-bottom: none; }
+    }
+
+    /* ── Info table ── */
+    .info-table { width: 100%; border-collapse: collapse; }
+    .info-table tr { border-bottom: 1px solid var(--border); }
+    .info-table tr:last-child { border-bottom: none; }
+    .info-table td { padding: .75rem 0; font-size: .8rem; }
+    .info-table td:first-child { color: var(--muted); width: 40%; }
+    .info-table td:last-child { color: var(--accent); font-weight: 700; }
+
+    /* ── API endpoints ── */
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      padding: .7rem 1rem;
+      background: rgba(0,245,160,.04);
+      border: 1px solid rgba(0,245,160,.1);
+      border-radius: 8px;
+      margin-bottom: .5rem;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+      text-decoration: none;
+      color: inherit;
+    }
+    .endpoint:hover {
+      background: rgba(0,245,160,.1);
+      border-color: rgba(0,245,160,.3);
+    }
+    .method {
+      font-size: .65rem;
+      background: rgba(0,245,160,.15);
+      color: var(--accent);
+      border: 1px solid rgba(0,245,160,.3);
+      padding: .2rem .5rem;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .path { font-size: .8rem; color: var(--text); }
+    .ep-desc { font-size: .7rem; color: var(--muted); margin-left: auto; }
+
+    /* ── Status bar ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.4rem;
+      font-size: .75rem;
+    }
+    .status-item { display: flex; align-items: center; gap: .5rem; }
+    .dot-green { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: blink 2s infinite; }
+    .dot-blue  { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+
+    /* ── Animations ── */
+    @keyframes fadeDown { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: none; } }
+    @keyframes blink    { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+    @keyframes stageIn  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    .stage:nth-child(1) { animation-delay: .0s; }
+    .stage:nth-child(2) { animation-delay: .1s; }
+    .stage:nth-child(3) { animation-delay: .2s; }
+    .stage:nth-child(4) { animation-delay: .3s; }
+    .stage:nth-child(5) { animation-delay: .4s; }
+    .stage:nth-child(6) { animation-delay: .5s; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: .65rem;
+      color: var(--muted);
+      letter-spacing: .1em;
+    }
+    footer span { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <div class="badge">CI/CD Pipeline · Live</div>
+      <h1>DevOps Dashboard</h1>
+      <p class="subtitle">GitHub Actions · Docker Hub · Render.com</p>
+    </header>
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="status-item"><div class="dot-green"></div> App Online</div>
+      <div class="status-item"><div class="dot-blue"></div> v{{ info.version }}</div>
+      <div class="status-item" style="margin-left:auto; color: var(--muted);">{{ info.timestamp }}</div>
+    </div>
+
+    <!-- Metrics -->
+    <p class="section-title">▸ System Info</p>
+    <div class="grid grid-3">
+      <div class="card">
+        <div class="card-label">Environment</div>
+        <div class="card-value" style="font-size:1.1rem;">{{ info.environment }}</div>
+        <div class="card-sub">Runtime context</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Python Version</div>
+        <div class="card-value" style="font-size:1.1rem;">{{ info.python_version }}</div>
+        <div class="card-sub">Interpreter</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Platform</div>
+        <div class="card-value" style="font-size:1.1rem;">{{ info.platform }}</div>
+        <div class="card-sub">Host OS</div>
+      </div>
+    </div>
+
+    <!-- Pipeline -->
+    <p class="section-title">▸ CI/CD Pipeline</p>
+    <div class="pipeline">
+      {% for stage in stages %}
+      <div class="stage">
+        <div class="stage-icon">{{ stage.icon }}</div>
+        <div class="stage-name">{{ stage.name }}</div>
+        <div class="stage-desc">{{ stage.description }}</div>
+        <div class="stage-dot"></div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- API + Info -->
+    <div class="grid grid-2" style="margin-top: 1.2rem;">
+      <div>
+        <p class="section-title">▸ API Endpoints</p>
+        <a class="endpoint" href="/api/health" target="_blank">
+          <span class="method">GET</span>
+          <span class="path">/api/health</span>
+          <span class="ep-desc">Healthcheck</span>
+        </a>
+        <a class="endpoint" href="/api/info" target="_blank">
+          <span class="method">GET</span>
+          <span class="path">/api/info</span>
+          <span class="ep-desc">App metadata</span>
+        </a>
+        <a class="endpoint" href="/api/pipeline" target="_blank">
+          <span class="method">GET</span>
+          <span class="path">/api/pipeline</span>
+          <span class="ep-desc">Pipeline stages</span>
+        </a>
+      </div>
+
+      <div>
+        <p class="section-title">▸ Tech Stack</p>
+        <div class="card" style="padding: 0;">
+          <table class="info-table" style="padding: 0 1.4rem;">
+            <tr><td>Framework</td><td>Flask 3.0</td></tr>
+            <tr><td>Server</td><td>Gunicorn</td></tr>
+            <tr><td>Container</td><td>Docker (multi-stage)</td></tr>
+            <tr><td>CI/CD</td><td>GitHub Actions</td></tr>
+            <tr><td>Registry</td><td>Docker Hub</td></tr>
+            <tr><td>Hosting</td><td>Render.com</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Built with ♥ · <span>DevOps CI/CD Final Project</span> · Flask + Docker + GitHub Actions
+    </footer>
+
+  </div>
+</body>
+</html>
